@@ -1,8 +1,9 @@
 {
   "name": "tr3",
   "version": "1.0.0",
+  "type": "module",
   "description": "Esquema mínim de carpetes pels projectes transversals",
-  "main": "index.js",
+  "main": "server.js",
   "directories": {
     "doc": "doc"
   },
@@ -10,5 +11,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.13.0",
+    "sequelize": "^6.37.6"
+  }
 }
