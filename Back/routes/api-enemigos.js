@@ -1,4 +1,3 @@
-// routes/api-enemigos.js
 import express from 'express';
 import { enemigos } from '../models/index.js';
 
@@ -17,8 +16,8 @@ router.get('/', async (req, res) => {
 // POST
 router.post('/', async (req, res) => {
   try {
-    const { nombre } = req.body; // Ajusta según los atributos del modelo Enemigos
-    const newEnemigo = await enemigos.create({ nombre });
+    const { nombre, vida, daño, velocidad } = req.body;
+    const newEnemigo = await enemigos.create({ nombre, vida, daño, velocidad });
     res.json(newEnemigo);
   } catch (error) {
     res.status(500).send(error.message);
@@ -28,10 +27,10 @@ router.post('/', async (req, res) => {
 // PUT
 router.put('/:id', async (req, res) => {
   try {
-    const { nombre } = req.body; // Ajusta según los atributos del modelo Enemigos
+    const { nombre, vida, daño, velocidad } = req.body;
     const enemigo = await enemigos.findByPk(req.params.id);
     if (enemigo) {
-      const enemigoUpdated = await enemigo.update({ nombre });
+      const enemigoUpdated = await enemigo.update({ nombre, vida, daño, velocidad });
       res.json(enemigoUpdated);
     } else {
       res.status(404).send('Enemigo no encontrado');

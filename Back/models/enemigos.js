@@ -6,7 +6,18 @@ function defineEnemigos(sequelize) {
       type: DataTypes.STRING,
       allowNull: false
     },
-    // Otros atributos...
+    vida: {
+      type: DataTypes.INTEGER,
+      defaultValue: 100
+    },
+    daño: {
+      type: DataTypes.INTEGER,
+      defaultValue: 10
+    },
+    velocidad: {
+      type: DataTypes.FLOAT,
+      defaultValue: 5.0
+    }
   });
 }
 

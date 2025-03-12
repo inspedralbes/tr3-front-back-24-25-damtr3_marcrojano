@@ -8,14 +8,19 @@
     "doc": "doc"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
     "express": "^4.21.2",
     "mysql2": "^3.13.0",
     "sequelize": "^6.37.6"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }
