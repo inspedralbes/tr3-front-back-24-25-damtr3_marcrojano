@@ -1,58 +1,53 @@
 import express from 'express';
-import { enemigos } from '../models/index.js';
+import bodyParser from 'body-parser';
+import { Sequelize, DataTypes } from 'sequelize';
 
-const router = express.Router();
-
-// GET
-router.get('/', async (req, res) => {
-  try {
-    const enemigosList = await enemigos.findAll();
-    res.json(enemigosList);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './enemigos.sqlite3'
 });
 
-// POST
-router.post('/', async (req, res) => {
-  try {
-    const { nombre, vida, daño, velocidad } = req.body;
-    const newEnemigo = await enemigos.create({ nombre, vida, daño, velocidad });
-    res.json(newEnemigo);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
+const Enemigo = sequelize.define('Enemigo', {
+    vida: { type: DataTypes.INTEGER, allowNull: false },
+    daño: { type: DataTypes.INTEGER, allowNull: false },
+    velocidad: { type: DataTypes.FLOAT, allowNull: false }
 });
 
-// PUT
-router.put('/:id', async (req, res) => {
-  try {
-    const { nombre, vida, daño, velocidad } = req.body;
-    const enemigo = await enemigos.findByPk(req.params.id);
-    if (enemigo) {
-      const enemigoUpdated = await enemigo.update({ nombre, vida, daño, velocidad });
-      res.json(enemigoUpdated);
-    } else {
-      res.status(404).send('Enemigo no encontrado');
+const app = express();
+app.use(bodyParser.json());
+
+// Endpoint para obtener parámetros de los enemigos
+app.get('/api/enemigos', async (req, res) => {
+    try {
+        const enemigos = await Enemigo.findAll();
+        res.json({ enemigos: enemigos });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
 });
 
-// DELETE
-router.delete('/:id', async (req, res) => {
-  try {
-    const enemigo = await enemigos.findByPk(req.params.id);
-    if (enemigo) {
-      await enemigo.destroy();
-      res.json({ message: 'Enemigo eliminado correctamente' });
-    } else {
-      res.status(404).send('Enemigo no encontrado');
+// Endpoint para actualizar un enemigo
+app.put('/api/enemigos/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { vida, daño, velocidad } = req.body;
+        const enemigo = await Enemigo.update({
+            vida,
+            daño,
+            velocidad
+        }, {
+            where: { id }
+        });
+        if (enemigo[0] === 1) {
+            res.status(200).json({ mensaje: "Enemigo actualizado correctamente" });
+        } else {
+            res.status(404).json({ mensaje: "Enemigo no encontrado" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
 });
 
-export default router;
+app.listen(3001, () => {
+    console.log('Servidor corriendo en http://localhost:3001');
+});

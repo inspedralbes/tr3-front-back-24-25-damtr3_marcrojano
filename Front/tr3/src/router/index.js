@@ -3,8 +3,14 @@ import EquipSkins from '../components/EquipSkins.vue';
 import EnemyStats from '../components/EnemyStats.vue';
 import TakePhoto from '../components/TakePhoto.vue';
 import Stats from '../components/Stats.vue';
+import Home from '@/components/Home.vue';
 
 const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: Home // Puedes cambiar esto a cualquier otro componente que desees mostrar en la raíz
+  },
   {
     path: '/equip-skins',
     name: 'equipSkins',

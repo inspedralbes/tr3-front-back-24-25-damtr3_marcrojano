@@ -1,23 +1,27 @@
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import { Sequelize, DataTypes } from 'sequelize';
 
-dotenv.config();
+// Conexión con la base de datos
+const sequelize = new Sequelize('tr3', 'root', '', {
+  host: 'localhost',
+  dialect: 'mysql',  // o 'postgres', dependiendo de tu base de datos
+  logging: false  // Esto desactiva los logs de SQL en la consola (opcional)
+});
 
-const sequelize = new Sequelize(
-  process.env.MYSQL_DATABASE,
-  process.env.MYSQL_USER,
-  process.env.MYSQL_PASSWORD,
-  {
-    host: process.env.MYSQL_HOST || 'mysql',
-    dialect: 'mysql',
-    logging: false,
+// Definición del modelo 'enemigos'
+const enemigos = sequelize.define('Enemigo', {
+  vida: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  daño: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  velocidad: {
+    type: DataTypes.FLOAT,
+    allowNull: false
   }
-);
+});
 
-import { defineEnemigos } from './enemigos.js';
-
-const Enemigos = defineEnemigos(sequelize);
-
-
-export { sequelize, Enemigos as enemigos };
-export default sequelize;
+// Exportar sequelize y el modelo
+export { sequelize, enemigos };

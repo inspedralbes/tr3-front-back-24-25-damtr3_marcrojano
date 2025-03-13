@@ -1,0 +1,9 @@
+services:
+  sqlite-studio:
+    image: nouchka/sqlite-studio
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./enemigos.sqlite3:/mnt/enemigos.sqlite3
+    stdin_open: true
+    tty: true
