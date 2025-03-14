@@ -138,29 +138,26 @@ export default {
   },
   methods: {
     async fetchStats() {
-      try {
-        const response = await fetch('http://localhost:3001/api/enemigos');
-        if (!response.ok) {
-          console.error("Error en la respuesta del servidor:", response.status);
-          return;
-        }
+  try {
+    const response = await fetch('http://localhost:3001/api/enemigos');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.enemigos && data.enemigos.length > 0) {
+      const enemigo = data.enemigos[0];
+      this.id = enemigo.id;
+      this.vida = enemigo.vida;
+      this.daño = enemigo.daño;
+      this.velocidad = enemigo.velocidad;
+    } else {
+      console.warn("No se encontraron enemigos en la base de datos.");
+    }
+  } catch (error) {
+    console.error("Error obteniendo datos del enemigo:", error);
+  }
+},
 
-        const data = await response.json();
-        console.log("Datos obtenidos:", data);
-
-        if (data && data.enemigos.length > 0) {
-          const enemigo = data.enemigos[0];
-          this.id = enemigo.id;
-          this.vida = enemigo.vida;
-          this.daño = enemigo.daño;
-          this.velocidad = enemigo.velocidad;
-        } else {
-          console.warn("No se encontró un enemigo en la base de datos.");
-        }
-      } catch (error) {
-        console.error("Error obteniendo datos del enemigo:", error);
-      }
-    },
 
     async updateStats() {
       if (!this.id) {
@@ -168,15 +165,19 @@ export default {
         return;
       }
 
+      const updateData = {
+        vida: parseInt(this.vida),
+        daño: parseInt(this.daño),
+        velocidad: parseFloat(this.velocidad)
+      };
+
+      console.log("Enviando datos:", updateData, "al ID:", this.id); // Imprime los datos aquí
+
       try {
         const response = await fetch(`http://localhost:3001/api/enemigos/${this.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            vida: parseInt(this.vida),
-            daño: parseInt(this.daño),
-            velocidad: parseFloat(this.velocidad)
-          })
+          body: JSON.stringify(updateData)
         });
 
         if (response.ok) {
