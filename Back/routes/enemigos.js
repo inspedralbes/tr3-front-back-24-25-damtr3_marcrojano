@@ -1,14 +1,19 @@
 import express from 'express';
-import { updateEnemigoUnity, createEnemigoFromUnity, getAllEnemigos } from '../controllers/enemigoController.js';
+import {
+  getAllEnemigos,
+  updateAllEnemigos,
+  getEnemigosForUnity,
+  guardarYEnviarEnemigos
+} from '../controllers/enemigoController.js';
 
 const router = express.Router();
 
-// Ruta para obtener todos los enemigos
+// Web endpoints
 router.get('/enemigos', getAllEnemigos);
+//router.put('/enemigos', updateAllEnemigos);
+router.post('/enemigos/guardar-y-enviar', guardarYEnviarEnemigos);
 
-// Ruta para actualizar o crear enemigo desde Unity
-router.put('/enemigos/unity', updateEnemigoUnity);
-
-router.post('/enemigos/unity', createEnemigoFromUnity);
+// Unity endpoints
+router.get('/enemigos/unity', getEnemigosForUnity);
 
 export default router;

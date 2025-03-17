@@ -1,61 +1,112 @@
 import Enemigo from '../models/enemigo.js';
 
-// Obtener todos los enemigos
+// Obtener todos los enemigos para la web
 export const getAllEnemigos = async (req, res) => {
   try {
     const enemigos = await Enemigo.findAll();
     res.json(enemigos);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en getAllEnemigos:', error);
+    res.status(500).json({
+      error: 'Error al obtener enemigos',
+      detalles: error.message
+    });
   }
 };
 
-export const updateEnemigoUnity = async (req, res) => {
+// Actualizar múltiples enemigos desde la web
+export const updateAllEnemigos = async (req, res) => {
   try {
-    const { nombre, vida, daño, velocidad } = req.body;
+    const { enemigos } = req.body;
 
-    // Verifica si los datos están llegando correctamente
-    console.log("Datos recibidos en el servidor:", req.body);
-
-    // Validar que el nombre esté presente
-    if (!nombre) {
-      return res.status(400).json({ error: 'El nombre del enemigo es obligatorio.' });
+    if (!enemigos || !Array.isArray(enemigos)) {
+      return res.status(400).json({ error: 'Formato de datos inválido' });
     }
 
-    // Buscar el enemigo por nombre
-    const enemigo = await Enemigo.findOne({ where: { nombre } });
+    const resultados = await Promise.all(
+      enemigos.map(async (enemigo) => {
+        const [registro] = await Enemigo.upsert({
+          nombre: enemigo.nombre,
+          vida: enemigo.vida,
+          daño: enemigo.daño,
+          velocidad: enemigo.velocidad
+        }, { returning: true });
+        return registro;
+      })
+    );
 
-    if (enemigo) {
-      // Si el enemigo existe, actualizar
-      console.log(`Actualizando enemigo: ${nombre}`);
-      await Enemigo.update({ vida, daño, velocidad }, { where: { nombre } });
-    } else {
-      // Si no existe, crear uno nuevo
-      console.log(`Creando enemigo nuevo: ${nombre}`);
-      await Enemigo.create({ nombre, vida, daño, velocidad });
-    }
+    res.json({
+      mensaje: 'Todos los enemigos actualizados',
+      count: resultados.length
+    });
 
-    // Devolver el enemigo actualizado
-    const updatedEnemigo = await Enemigo.findOne({ where: { nombre } });
-    res.json(updatedEnemigo);
   } catch (error) {
-    console.error("Error en el controlador de actualización:", error);
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      res.status(400).json({ error: 'El enemigo ya existe.' });
-    } else {
-      res.status(500).json({ error: error.message });
-    }
+    console.error('Error en updateAllEnemigos:', error);
+    res.status(500).json({
+      error: error.name === 'SequelizeUniqueConstraintError'
+        ? 'Datos duplicados'
+        : 'Error del servidor',
+      detalles: error.message
+    });
   }
 };
 
-
-// Crear un nuevo enemigo desde Unity
-export const createEnemigoFromUnity = async (req, res) => {
+export const guardarYEnviarEnemigos = async (req, res) => {
   try {
-    const { nombre, vida, daño, velocidad } = req.body;
-    const enemigo = await Enemigo.create({ nombre, vida, daño, velocidad });
-    res.status(201).json({ mensaje: "Enemigo creado correctamente", enemigo });
+    console.log('Recibida solicitud en /api/enemigos/guardar-y-enviar');
+    console.log('Cuerpo de la solicitud:', req.body);
+
+    const { enemigos } = req.body;
+
+    if (!enemigos || !Array.isArray(enemigos)) {
+      return res.status(400).json({ error: 'Formato de datos inválido' });
+    }
+
+    // Guardar/actualizar los enemigos en la base de datos
+    await Promise.all(
+      enemigos.map(async (enemigo) => {
+        await Enemigo.upsert({
+          nombre: enemigo.nombre,
+          vida: enemigo.vida,
+          daño: enemigo.daño,
+          velocidad: enemigo.velocidad
+        });
+      })
+    );
+
+    console.log('Enemigos guardados en la base de datos');
+
+    // En lugar de intentar comunicarse con Unity, simplemente enviamos una respuesta exitosa
+    res.json({ 
+      mensaje: 'Datos guardados exitosamente', 
+      advertencia: 'La comunicación con Unity está desactivada temporalmente'
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en guardarYEnviarEnemigos:', error);
+    res.status(500).json({
+      error: error.name === 'SequelizeUniqueConstraintError'
+        ? 'Datos duplicados'
+        : 'Error del servidor',
+      detalles: error.message
+    });
+  }
+};
+
+// Obtener datos optimizados para Unity
+export const getEnemigosForUnity = async (req, res) => {
+  try {
+    const enemigos = await Enemigo.findAll({
+      attributes: ['nombre', 'vida', 'daño', 'velocidad'],
+      raw: true
+    });
+
+    res.json(enemigos);
+  } catch (error) {
+    console.error('Error en getEnemigosForUnity:', error);
+    res.status(500).json({
+      error: 'Error al obtener datos para Unity',
+      detalles: error.message
+    });
   }
 };
