@@ -9,8 +9,10 @@
       <v-btn text to="/take-photo">Sacar Foto</v-btn>
       <v-btn text to="/stats">Estadísticas</v-btn>
     </v-app-bar>
-
-    <router-view />
+    
+    <v-main>
+      <router-view />
+    </v-main>
   </v-app>
 </template>
 

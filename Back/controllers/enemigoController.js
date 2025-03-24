@@ -96,17 +96,17 @@ export const guardarYEnviarEnemigos = async (req, res) => {
 // Obtener datos optimizados para Unity
 export const getEnemigosForUnity = async (req, res) => {
   try {
-    const enemigos = await Enemigo.findAll({
-      attributes: ['nombre', 'vida', 'daño', 'velocidad'],
-      raw: true
-    });
+      const enemigos = await Enemigo.findAll({
+          attributes: ['nombre', 'vida', 'daño', 'velocidad'],
+          raw: true
+      });
 
-    res.json(enemigos);
+      res.json(enemigos);
   } catch (error) {
-    console.error('Error en getEnemigosForUnity:', error);
-    res.status(500).json({
-      error: 'Error al obtener datos para Unity',
-      detalles: error.message
-    });
+      console.error('Error en getEnemigosForUnity:', error);
+      res.status(500).json({
+          error: 'Error al obtener datos para Unity',
+          detalles: error.message
+      });
   }
 };
