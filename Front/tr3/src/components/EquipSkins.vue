@@ -1,437 +1,349 @@
 <template>
-    <v-container fluid class="skin-showcase-container">
+  <div class="character-editor">
+    <!-- Notification Snackbar -->
+    <v-snackbar
+      v-model="mostrarSnackbar"
+      :color="tipoMensaje"
+      :timeout="3000"
+      top
+    >
+      {{ mensaje }}
+      <template v-slot:action="{ attrs }">
+        <v-btn icon v-bind="attrs" @click="mostrarSnackbar = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </template>
+    </v-snackbar>
+
+    <!-- Main Container -->
+    <v-container fluid class="pa-4">
       <v-row>
         <v-col cols="12">
-          <h1 class="text-center text-h3 mb-6">Character Customization</h1>
+          <v-card class="mb-6 rounded-lg" elevation="3">
+            <div class="d-flex align-center pa-4 primary darken-1">
+              <v-avatar size="52" class="mr-4 elevation-2 white">
+                <v-icon size="32" color="primary">mdi-account-sword</v-icon>
+              </v-avatar>
+              <div>
+                <h1 class="text-h4 white--text font-weight-bold mb-1">Character Stats Editor</h1>
+                <p class="text-subtitle-1 white--text mb-0">Configure and manage character attributes</p>
+              </div>
+            </div>
+          </v-card>
         </v-col>
       </v-row>
-      
-      <!-- Main content area -->
+
       <v-row>
-        <!-- Character preview area -->
-        <v-col cols="12" md="6" class="character-preview-col">
-          <v-card elevation="8" class="character-preview-card">
-            <v-card-title class="text-h5 font-weight-bold">
-              <v-icon large left>mdi-account-circle</v-icon>
-              Character Preview
-            </v-card-title>
+        <!-- Left Panel: Character List -->
+        <v-col cols="12" md="8">
+          <v-card class="rounded-lg mb-6" elevation="2">
+            <v-toolbar flat class="secondary darken-1">
+              <v-icon left color="white">mdi-format-list-bulleted</v-icon>
+              <span class="white--text text-h6 font-weight-bold">Existing Characters</span>
+              <v-spacer></v-spacer>
+              <v-btn 
+                color="white" 
+                small 
+                outlined 
+                @click="guardarYEnviar" 
+                :disabled="characters.length === 0"
+                class="text-none"
+              >
+                <v-icon left small>mdi-content-save</v-icon>
+                Save Changes
+              </v-btn>
+            </v-toolbar>
             
-            <v-card-text class="text-center py-6">
-              <div class="character-preview-container">
-                <!-- Character preview image -->
-                <v-img
-                  :src="getPreviewImage()"
-                  max-height="400"
-                  contain
-                  class="character-preview"
-                  :class="{'preview-pulse': isNewlyEquipped}"
-                ></v-img>
-                
-                <!-- Equipped badge -->
-                <v-chip
-                  v-if="equippedSkin"
-                  color="success"
-                  class="equipped-badge"
-                  dark
+            <div v-if="characters.length === 0" class="d-flex flex-column align-center justify-center pa-8">
+              <v-avatar size="80" class="mb-4 grey lighten-4">
+                <v-icon size="48" color="grey darken-1">mdi-account-multiple</v-icon>
+              </v-avatar>
+              <p class="text-h6 grey--text text--darken-1">No characters registered</p>
+              <p class="text-subtitle-2 grey--text text-center">Add a new character using the form</p>
+            </div>
+            
+            <v-container v-else fluid>
+              <v-row dense>
+                <v-col
+                  v-for="(character, index) in characters"
+                  :key="character.nombre"
+                  cols="12"
+                  sm="6"
+                  lg="4"
                 >
-                  <v-icon left>mdi-check-circle</v-icon>
-                  Equipped: {{ equippedSkin.name }}
-                </v-chip>
-              </div>
-            </v-card-text>
+                  <v-card 
+                    class="mb-3 rounded-lg" 
+                    outlined
+                    hover
+                  >
+                    <v-card-title class="py-2 d-flex justify-space-between">
+                      <div class="d-flex align-center">
+                        <v-avatar size="32" color="primary lighten-4" class="mr-2">
+                          <v-icon color="primary">mdi-account</v-icon>
+                        </v-avatar>
+                        <span class="text-subtitle-1 font-weight-bold">{{ character.nombre }}</span>
+                      </div>
+                      <v-btn icon small @click="eliminarCharacter(index)">
+                        <v-icon small color="grey darken-1">mdi-delete</v-icon>
+                      </v-btn>
+                    </v-card-title>
+
+                    <v-divider></v-divider>
+
+                    <v-card-text class="pt-4">
+                      <v-row dense>
+                        <v-col cols="12">
+                          <v-slider
+                            v-model="character.vida"
+                            label="Health"
+                            thumb-label="always"
+                            min="0"
+                            max="500"
+                            color="red"
+                            track-color="red lighten-3"
+                            prepend-icon="mdi-heart"
+                            hide-details
+                          ></v-slider>
+                        </v-col>
+
+                        <v-col cols="12">
+                          <v-slider
+                            v-model="character.daño"
+                            label="Damage"
+                            thumb-label="always"
+                            min="0"
+                            max="100"
+                            color="orange"
+                            track-color="orange lighten-3"
+                            prepend-icon="mdi-sword-cross"
+                            hide-details
+                          ></v-slider>
+                        </v-col>
+
+                        <v-col cols="12">
+                          <v-slider
+                            v-model="character.velocidad"
+                            label="Speed"
+                            thumb-label="always"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            color="green"
+                            track-color="green lighten-3"
+                            prepend-icon="mdi-run-fast"
+                            hide-details
+                          ></v-slider>
+                        </v-col>
+                      </v-row>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card>
+        </v-col>
+
+        <!-- Right Panel: Add New Character Form -->
+        <v-col cols="12" md="4">
+          <v-card class="rounded-lg sticky-top" elevation="2">
+            <v-toolbar flat class="accent darken-1">
+              <v-icon left color="white">mdi-plus-circle</v-icon>
+              <span class="white--text text-h6 font-weight-bold">Add Character</span>
+            </v-toolbar>
             
-            <v-card-actions class="justify-center pb-4">
+            <v-card-text class="pt-4">
+              <v-form ref="formNuevoCharacter" @submit.prevent="agregarNuevoCharacter">
+                <v-text-field
+                  v-model="nuevoCharacter.nombre"
+                  label="Character Name"
+                  prepend-inner-icon="mdi-tag"
+                  filled
+                  rounded
+                  dense
+                  required
+                  class="mb-2"
+                ></v-text-field>
+
+                <div class="mb-3">
+                  <div class="d-flex align-center mb-1">
+                    <v-icon small color="red" class="mr-2">mdi-heart</v-icon>
+                    <span class="text-subtitle-2 grey--text text--darken-2">Health: {{ nuevoCharacter.vida }}</span>
+                  </div>
+                  <v-slider
+                    v-model="nuevoCharacter.vida"
+                    min="0"
+                    max="500"
+                    thumb-label="always"
+                    color="red"
+                    track-color="red lighten-3"
+                    hide-details
+                  ></v-slider>
+                </div>
+
+                <div class="mb-3">
+                  <div class="d-flex align-center mb-1">
+                    <v-icon small color="orange" class="mr-2">mdi-sword-cross</v-icon>
+                    <span class="text-subtitle-2 grey--text text--darken-2">Damage: {{ nuevoCharacter.daño }}</span>
+                  </div>
+                  <v-slider
+                    v-model="nuevoCharacter.daño"
+                    min="0"
+                    max="100"
+                    thumb-label="always"
+                    color="orange"
+                    track-color="orange lighten-3"
+                    hide-details
+                  ></v-slider>
+                </div>
+
+                <div class="mb-4">
+                  <div class="d-flex align-center mb-1">
+                    <v-icon small color="green" class="mr-2">mdi-run-fast</v-icon>
+                    <span class="text-subtitle-2 grey--text text--darken-2">Speed: {{ nuevoCharacter.velocidad }}</span>
+                  </div>
+                  <v-slider
+                    v-model="nuevoCharacter.velocidad"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    thumb-label="always"
+                    color="green"
+                    track-color="green lighten-3"
+                    hide-details
+                  ></v-slider>
+                </div>
+
+                <v-btn 
+                  color="success" 
+                  type="submit"
+                  elevation="2"
+                  block
+                  large
+                  class="text-none font-weight-bold"
+                >
+                  <v-icon left>mdi-plus</v-icon>
+                  Add Character
+                </v-btn>
+              </v-form>
+            </v-card-text>
+          </v-card>
+          
+          <!-- Save and Send to Unity Button -->
+          <v-card class="mt-4 rounded-lg" outlined>
+            <v-card-text class="pa-3">
               <v-btn
                 color="primary"
+                @click="guardarYEnviar"
+                :disabled="characters.length === 0"
+                elevation="2"
                 large
-                :disabled="!selectedSkin || selectedSkin.id === (equippedSkin && equippedSkin.id)"
-                @click="equipSkin"
-                class="px-8"
+                block
+                class="text-none font-weight-bold"
               >
-                <v-icon left>mdi-tshirt-crew</v-icon>
-                Equip Skin
+                <v-icon left>mdi-content-save-send</v-icon>
+                Save and Send to Unity
               </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-        
-        <!-- Skin selection area -->
-        <v-col cols="12" md="6">
-          <v-card elevation="8" class="skin-selection-card">
-            <v-card-title class="text-h5 font-weight-bold d-flex justify-space-between">
-              <div>
-                <v-icon large left>mdi-palette</v-icon>
-                Available Skins
-              </div>
-              <v-chip outlined color="primary">{{ availableSkins.length }} Skins</v-chip>
-            </v-card-title>
-            
-            <v-card-text>
-              <v-tabs
-                v-model="activeTab"
-                background-color="transparent"
-                grow
-              >
-                <v-tab>
-                  <v-icon left>mdi-grid</v-icon>
-                  Grid View
-                </v-tab>
-                <v-tab>
-                  <v-icon left>mdi-format-list-bulleted</v-icon>
-                  List View
-                </v-tab>
-              </v-tabs>
-              
-              <v-tabs-items v-model="activeTab">
-                <!-- Grid view -->
-                <v-tab-item>
-                  <v-row class="mt-2">
-                    <v-col
-                      v-for="skin in availableSkins"
-                      :key="skin.id"
-                      cols="6"
-                      sm="4"
-                    >
-                      <v-card
-                        @click="selectSkin(skin)"
-                        :class="{ 'skin-card-selected': isSelected(skin), 'skin-card-equipped': isEquipped(skin) }"
-                        hover
-                        class="skin-card"
-                      >
-                        <v-img
-                          :src="skin.thumbnail"
-                          height="120"
-                          class="skin-thumbnail"
-                        ></v-img>
-                        
-                        <v-card-title class="pa-2 text-subtitle-1 justify-center">
-                          {{ skin.name }}
-                        </v-card-title>
-                        
-                        <v-card-text class="pa-2 pt-0 d-flex justify-space-between">
-                          <v-chip
-                            x-small
-                            :color="getRarityColor(skin.rarity)"
-                            text-color="white"
-                          >
-                            {{ skin.rarity }}
-                          </v-chip>
-                          
-                          <v-icon
-                            v-if="isEquipped(skin)"
-                            small
-                            color="success"
-                          >
-                            mdi-check-circle
-                          </v-icon>
-                        </v-card-text>
-                      </v-card>
-                    </v-col>
-                  </v-row>
-                </v-tab-item>
-                
-                <!-- List view -->
-                <v-tab-item>
-                  <v-list class="mt-2">
-                    <v-list-item-group>
-                      <v-list-item
-                        v-for="skin in availableSkins"
-                        :key="skin.id"
-                        @click="selectSkin(skin)"
-                        :class="{ 'skin-item-selected': isSelected(skin) }"
-                      >
-                        <v-list-item-avatar>
-                          <v-img :src="skin.thumbnail"></v-img>
-                        </v-list-item-avatar>
-                        
-                        <v-list-item-content>
-                          <v-list-item-title>{{ skin.name }}</v-list-item-title>
-                          <v-list-item-subtitle>{{ skin.description }}</v-list-item-subtitle>
-                        </v-list-item-content>
-                        
-                        <v-list-item-action>
-                          <v-chip
-                            small
-                            :color="getRarityColor(skin.rarity)"
-                            text-color="white"
-                            class="mr-2"
-                          >
-                            {{ skin.rarity }}
-                          </v-chip>
-                          
-                          <v-icon
-                            v-if="isEquipped(skin)"
-                            color="success"
-                          >
-                            mdi-check-circle
-                          </v-icon>
-                        </v-list-item-action>
-                      </v-list-item>
-                    </v-list-item-group>
-                  </v-list>
-                </v-tab-item>
-              </v-tabs-items>
             </v-card-text>
-            
-            <v-card-actions class="justify-center pb-4" v-if="selectedSkin">
-              <v-btn
-                text
-                color="error"
-                @click="selectedSkin = null"
-              >
-                Clear Selection
-              </v-btn>
-            </v-card-actions>
           </v-card>
         </v-col>
       </v-row>
-      
-      <!-- Notification system -->
-      <v-snackbar
-        v-model="snackbar.show"
-        :color="snackbar.color"
-        :timeout="3000"
-        bottom
-        right
-      >
-        {{ snackbar.text }}
-        <template v-slot:action="{ attrs }">
-          <v-btn
-            text
-            v-bind="attrs"
-            @click="snackbar.show = false"
-          >
-            Close
-          </v-btn>
-        </template>
-      </v-snackbar>
     </v-container>
-  </template>
-  
-  <script>
-  export default {
-    data() {
-      return {
-        // UI controls
-        activeTab: 0,
-        snackbar: {
-          show: false,
-          text: '',
-          color: 'info'
-        },
-        isNewlyEquipped: false,
-        
-        // Skin data
-        selectedSkin: null,
-        equippedSkin: null,
-        availableSkins: [
-          {
-            id: 1,
-            name: "Default Warrior",
-            description: "Standard issue battle armor",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Common"
-          },
-          {
-            id: 2,
-            name: "Shadow Assassin",
-            description: "Stalk your prey unseen",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Rare"
-          },
-          {
-            id: 3,
-            name: "Dragon Knight",
-            description: "Forged in dragon flame",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Epic"
-          },
-          {
-            id: 4,
-            name: "Celestial Guardian",
-            description: "Blessed by the stars",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Legendary"
-          },
-          {
-            id: 5,
-            name: "Winter's Fury",
-            description: "Cold as ice, deadly as frost",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Epic"
-          },
-          {
-            id: 6,
-            name: "Ancient Warlord",
-            description: "Relic of a forgotten age",
-            thumbnail: "/api/placeholder/200/200",
-            fullImage: "/api/placeholder/400/400",
-            rarity: "Rare"
-          }
-        ]
-      };
-    },
-    
-    mounted() {
-      // Set default skin on load
-      this.equippedSkin = this.availableSkins[0];
-    },
-    
-    methods: {
-      selectSkin(skin) {
-        this.selectedSkin = skin;
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      mostrarSnackbar: false,
+      tipoMensaje: 'success',
+      mensaje: '',
+      characters: [],
+      nuevoCharacter: {
+        nombre: '',
+        vida: 100,
+        daño: 10,
+        velocidad: 2.5,
       },
-      
-      equipSkin() {
-        if (!this.selectedSkin) return;
-        
-        this.equippedSkin = this.selectedSkin;
-        this.showNotification(`${this.selectedSkin.name} equipped successfully!`, 'success');
-        
-        // Trigger animation effect
-        this.isNewlyEquipped = true;
-        setTimeout(() => {
-          this.isNewlyEquipped = false;
-        }, 1500);
-        
-        // Save to local storage or server
-        this.saveEquippedSkin();
-      },
-      
-      saveEquippedSkin() {
-        // Save to localStorage for persistence
-        localStorage.setItem('equippedSkin', JSON.stringify({
-          id: this.equippedSkin.id,
-          timestamp: new Date().toISOString()
-        }));
-        
-        // Here you would typically also send to server
-        console.log('Skin equipped and saved:', this.equippedSkin.name);
-      },
-      
-      showNotification(text, color = 'info') {
-        this.snackbar.text = text;
-        this.snackbar.color = color;
-        this.snackbar.show = true;
-      },
-      
-      isSelected(skin) {
-        return this.selectedSkin && this.selectedSkin.id === skin.id;
-      },
-      
-      isEquipped(skin) {
-        return this.equippedSkin && this.equippedSkin.id === skin.id;
-      },
-      
-      getPreviewImage() {
-        // Return preview image based on selected or equipped skin
-        if (this.selectedSkin) {
-          return this.selectedSkin.fullImage;
-        } else if (this.equippedSkin) {
-          return this.equippedSkin.fullImage;
+    }
+  },
+  mounted() {
+    this.fetchCharacters();
+  },
+  methods: {
+    async fetchCharacters() {
+      try {
+        const response = await fetch('http://localhost:3001/api/characters');
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        return "/api/placeholder/400/400"; // Default fallback
-      },
-      
-      getRarityColor(rarity) {
-        const colors = {
-          'Common': 'grey',
-          'Uncommon': 'green',
-          'Rare': 'blue',
-          'Epic': 'purple',
-          'Legendary': 'orange'
-        };
-        
-        return colors[rarity] || 'grey';
+
+        // Clonar la respuesta para inspeccionarla
+        const responseClone = response.clone();
+
+        try {
+          const data = await response.json();
+          this.characters = data;
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          const text = await responseClone.text();
+          console.error('Respuesta del servidor:', text);
+          throw error;
+        }
+      } catch (error) {
+        console.error('Error fetching characters:', error);
+        this.mostrarSnackbar = true;
+        this.tipoMensaje = 'error';
+        this.mensaje = 'Error al obtener personajes';
       }
-    }
-  };
-  </script>
-  
-  <style scoped>
-  .skin-showcase-container {
-    background-color: #f5f5f5;
-    min-height: 100vh;
-    padding-top: 16px;
-    padding-bottom: 16px;
-  }
-  
-  .character-preview-card, .skin-selection-card {
-    height: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-  
-  .character-preview-container {
-    position: relative;
-    min-height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .character-preview {
-    transition: all 0.3s ease;
-  }
-  
-  .preview-pulse {
-    animation: pulse 1.5s ease;
-  }
-  
-  .equipped-badge {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    z-index: 2;
-  }
-  
-  .skin-card {
-    transition: all 0.2s ease-in-out;
-    overflow: hidden;
-    cursor: pointer;
-    border: 2px solid transparent;
-  }
-  
-  .skin-card-selected {
-    border-color: #1976d2;
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  .skin-card-equipped {
-    border-color: #4caf50;
-  }
-  
-  .skin-item-selected {
-    background-color: rgba(25, 118, 210, 0.1);
-  }
-  
-  .skin-thumbnail {
-    transition: transform 0.3s ease;
-  }
-  
-  .skin-card:hover .skin-thumbnail {
-    transform: scale(1.05);
-  }
-  
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      filter: brightness(1);
-    }
-    50% {
-      transform: scale(1.05);
-      filter: brightness(1.2);
-    }
-    100% {
-      transform: scale(1);
-      filter: brightness(1);
+    },
+    async guardarYEnviar() {
+      try {
+        const response = await fetch('http://localhost:3001/api/characters/guardar-y-enviar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            characters: this.characters,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(data.mensaje);
+        this.mostrarSnackbar = true;
+        this.tipoMensaje = 'success';
+        this.mensaje = 'Datos guardados exitosamente';
+      } catch (error) {
+        console.error('Error saving and sending characters:', error);
+        this.mostrarSnackbar = true;
+        this.tipoMensaje = 'error';
+        this.mensaje = 'Error al guardar y enviar personajes';
+      }
+    },
+    agregarNuevoCharacter() {
+      if (this.nuevoCharacter.nombre.trim() !== '') {
+        this.characters.push({ ...this.nuevoCharacter });
+        this.nuevoCharacter.nombre = '';
+        this.nuevoCharacter.vida = 100;
+        this.nuevoCharacter.daño = 10;
+        this.nuevoCharacter.velocidad = 2.5;
+      }
+    },
+    eliminarCharacter(index) {
+      this.characters.splice(index, 1);
     }
   }
-  </style>
+}
+</script>
+
+<style scoped>
+.sticky-top {
+  position: sticky;
+  top: 16px;
+}
+</style>
