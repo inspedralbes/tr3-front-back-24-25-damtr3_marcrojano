@@ -165,111 +165,116 @@
       </v-row>
     </v-container>
   </template>
-  
+
   <script>
-  export default {
-    name: 'DifficultyManager',
-    data: () => ({
-      loading: false,
-      saving: false,
-      configurations: [],
-      message: null,
-      alertType: 'info',
-      isDarkMode: false,
-      headers: [
-        { 
-          text: 'Dificultad', 
-          value: 'difficultyLevel',
-          sortable: false 
-        },
-        { 
-          text: 'Ancho del Mapa (X)', 
-          value: 'mapSizeX',
-          sortable: false 
-        },
-        { 
-          text: 'Alto del Mapa (Y)', 
-          value: 'mapSizeY',
-          sortable: false 
-        },
-        { 
-          text: 'Multiplicador de Enemigos', 
-          value: 'enemyMultiplier',
-          sortable: false 
-        },
-      ]
-    }),
-    computed: {
-      alertIcon() {
-        return this.alertType === 'success' 
-          ? 'mdi-check-circle-outline' 
-          : 'mdi-alert-circle-outline';
-      }
-    },
-    async mounted() {
-      await this.fetchConfigurations();
-    },
-    methods: {
-      toggleDarkMode() {
-        this.isDarkMode = !this.isDarkMode;
-        this.$vuetify.theme.dark = this.isDarkMode;
+ export default {
+  name: 'DifficultyManager',
+  data: () => ({
+    loading: false,
+    saving: false,
+    configurations: [],
+    message: null,
+    alertType: 'info',
+    isDarkMode: false,
+    headers: [
+      { 
+        text: 'Dificultad', 
+        value: 'difficultyLevel',
+        sortable: false 
       },
-      getDifficultyColor(level) {
-        const colors = {
-          'Facil': 'green',
-          'Normal': 'orange',
-          'Dificil': 'red'
-        };
-        return colors[level] || 'primary';
+      { 
+        text: 'Ancho del Mapa (X)', 
+        value: 'mapSizeX',
+        sortable: false 
       },
-      async fetchConfigurations() {
-        this.loading = true;
-        try {
-          const response = await fetch('http://localhost:3001/api/map-configs');
-          if (!response.ok) throw new Error('Error al cargar configuraciones');
-          this.configurations = await response.json();
-        } catch (error) {
-          this.showMessage('error', error.message);
-        } finally {
-          this.loading = false;
-        }
+      { 
+        text: 'Alto del Mapa (Y)', 
+        value: 'mapSizeY',
+        sortable: false 
       },
-      async saveConfigurations() {
-        this.saving = true;
-        this.message = null;
-        
-        try {
-          const response = await fetch('http://localhost:3001/api/map-configs', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify(this.configurations)
-          });
-  
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Error al guardar');
-          }
-  
-          this.showMessage('success', '¡Configuraciones actualizadas exitosamente!');
-          await this.fetchConfigurations();
-        } catch (error) {
-          this.showMessage('error', error.message);
-        } finally {
-          this.saving = false;
-        }
+      { 
+        text: 'Multiplicador de Enemigos', 
+        value: 'enemyMultiplier',
+        sortable: false 
       },
-      showMessage(type, text) {
-        this.alertType = type;
-        this.message = text;
-        setTimeout(() => {
-          this.message = null;
-        }, 5000);
-      }
+    ]
+  }),
+  computed: {
+    alertIcon() {
+      return this.alertType === 'success' 
+        ? 'mdi-check-circle-outline' 
+        : 'mdi-alert-circle-outline';
     }
-  };
+  },
+  async mounted() {
+    await this.fetchConfigurations();
+  },
+  methods: {
+    toggleDarkMode() {
+      this.isDarkMode = !this.isDarkMode;
+      this.$vuetify.theme.dark = this.isDarkMode;
+    },
+    getDifficultyColor(level) {
+      const colors = {
+        'Facil': 'green',
+        'Normal': 'orange',
+        'Dificil': 'red'
+      };
+      return colors[level] || 'primary';
+    },
+    async fetchConfigurations() {
+      this.loading = true;
+      try {
+        const response = await fetch('http://localhost:3001/api/map-configs');
+        if (!response.ok) throw new Error('Error al cargar configuraciones');
+        this.configurations = await response.json();
+      } catch (error) {
+        this.showMessage('error', error.message);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async saveConfigurations() {
+  this.saving = true;
+  this.message = null;
+  
+  try {
+    const promises = this.configurations.map(config => 
+      fetch('http://localhost:3001/api/map-configs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(config)
+      })
+    );
+
+    const responses = await Promise.all(promises);
+    const results = await Promise.all(responses.map(r => r.json()));
+
+    if (responses.every(r => r.ok)) {
+      this.showMessage('success', '¡Configuraciones actualizadas exitosamente!');
+      await this.fetchConfigurations();
+    } else {
+      throw new Error('Error al guardar una o más configuraciones');
+    }
+  } catch (error) {
+    this.showMessage('error', error.message);
+  } finally {
+    this.saving = false;
+  }
+},
+    showMessage(type, text) {
+      this.alertType = type;
+      this.message = text;
+      setTimeout(() => {
+        this.message = null;
+      }, 5000);
+    }
+  }
+};
+
   </script>
   
   <style scoped>
