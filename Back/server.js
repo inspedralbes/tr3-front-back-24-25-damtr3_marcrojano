@@ -1,20 +1,129 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import { spawn } from 'child_process';
+import jwt from 'jsonwebtoken'; // Añadir esta importación
 import enemigoRoutes from './routes/enemigos.js';
-import characterRoutes from './routes/CharacterRoutes.js';  
+import characterRoutes from './routes/CharacterRoutes.js';
+import loginRoutes from './routes/LoginRoutes.js';
+import maintenanceRoutes from './routes/maintenanceRoutes.js';
 import sequelize from './config/database.js';
+import dificultadRoutes from'./routes/DificultadRoutes.js';
 
-const app = express();
+// Configuración principal
+const mainApp = express();
+let mainServer = null;
 
-app.use(bodyParser.json());
-app.use(cors());
-app.use('/api', enemigoRoutes);
-app.use('/api', characterRoutes);  
+// Configuración del servidor de control
+const controlApp = express();
+let isMainServerRunning = false;
 
-const PORT = process.env.PORT || 3001;
+// Middleware común para ambos servidores
+const commonMiddleware = (app) => {
+  app.use(bodyParser.json());
+  app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+};
 
-async function startServer() {
+// Servidor principal (3001)
+const setupMainServer = () => {
+  commonMiddleware(mainApp);
+
+  mainApp.use('/api', enemigoRoutes);
+  mainApp.use('/api', characterRoutes);
+  mainApp.use('/api', dificultadRoutes);
+  mainApp.use('/api/auth', loginRoutes);
+  mainApp.use('/api/maintenance', maintenanceRoutes);
+
+  mainApp.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  });
+
+  return mainApp.listen(3001, () => {
+    console.log('🚀 Servidor principal activo en http://localhost:3001');
+    isMainServerRunning = true;
+  });
+};
+
+// Servidor de control (3002)
+const setupControlServer = () => {
+  commonMiddleware(controlApp);
+
+  const verifyAdmin = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Token no proporcionado' });
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role !== 'admin') throw new Error();
+      next();
+    } catch (error) {
+      res.status(403).json({ error: 'Acceso no autorizado' });
+    }
+  };
+
+  controlApp.post('/api/control-server', verifyAdmin, (req, res) => {
+    const { action } = req.body;
+
+    try {
+      switch(action) {
+        case 'start':
+          if (!isMainServerRunning) {
+            mainServer = setupMainServer();
+          }
+          break;
+          
+        case 'stop':
+          if (isMainServerRunning && mainServer) {
+            mainServer.close(() => {
+              console.log('🔴 Servidor principal detenido');
+              isMainServerRunning = false;
+            });
+          }
+          break;
+          
+        case 'restart':
+          if (mainServer) {
+            mainServer.close(() => {
+              console.log('🔄 Reiniciando servidor...');
+              mainServer = setupMainServer();
+            });
+          }
+          break;
+          
+        default:
+          throw new Error('Acción no válida');
+      }
+      
+      res.json({ 
+        status: isMainServerRunning ? 'running' : 'stopped',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Endpoint de verificación de estado
+  controlApp.get('/api/health', (req, res) => {
+    res.json({ 
+      status: isMainServerRunning ? 'running' : 'stopped',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  controlApp.listen(3002, () => {
+    console.log('🎛 Servidor de control activo en http://localhost:3002');
+  });
+};
+
+// Inicialización
+const initialize = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Conexión a la base de datos establecida.');
@@ -23,15 +132,26 @@ async function startServer() {
       force: process.env.NODE_ENV === 'test',
       alter: process.env.NODE_ENV === 'development'
     });
-    console.log('🔄 Modelos sincronizados con la base de datos.');
     
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor activo en http://localhost:${PORT}`);
-    });
+    setupControlServer();
+    mainServer = setupMainServer();
+    
   } catch (error) {
     console.error('💥 Error de inicialización:', error);
     process.exit(1);
   }
-}
+};
 
-startServer();
+// Manejo de señales
+process.on('SIGINT', () => {
+  console.log('\n🔧 Apagado solicitado...');
+  if (mainServer) {
+    mainServer.close(() => {
+      console.log('🔒 Servidor principal detenido');
+      process.exit(0);
+    });
+  }
+});
+
+// Iniciar la aplicación
+initialize();
