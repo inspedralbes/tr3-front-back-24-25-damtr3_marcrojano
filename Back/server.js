@@ -9,6 +9,12 @@ import loginRoutes from './routes/LoginRoutes.js';
 import maintenanceRoutes from './routes/maintenanceRoutes.js';
 import sequelize from './config/database.js';
 import dificultadRoutes from'./routes/DificultadRoutes.js';
+import dotenv from 'dotenv'
+
+dotenv.config();
+
+const PORT_MAIN_SERVER = process.env.PORT_MAIN_SERVER
+const PORT_CONTROL_SERVER = process.env.PORT_CONTROL_SERVER
 
 // Configuración principal
 const mainApp = express();
@@ -43,8 +49,8 @@ const setupMainServer = () => {
     res.status(500).json({ error: 'Error interno del servidor' });
   });
 
-  return mainApp.listen(3001, () => {
-    console.log('🚀 Servidor principal activo en http://localhost:3001');
+  return mainApp.listen(PORT_MAIN_SERVER, () => {
+    console.log(`🚀 Servidor principal activo en http://localhost:${PORT_MAIN_SERVER}`);
     isMainServerRunning = true;
   });
 };
@@ -117,8 +123,8 @@ const setupControlServer = () => {
     });
   });
 
-  controlApp.listen(3002, () => {
-    console.log('🎛 Servidor de control activo en http://localhost:3002');
+  controlApp.listen(PORT_CONTROL_SERVER, () => {
+    console.log(`🎛 Servidor de control activo en http://localhost:${PORT_CONTROL_SERVER}`);
   });
 };
 
