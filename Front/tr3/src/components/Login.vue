@@ -55,7 +55,7 @@ export default {
       async handleLogin() {
         this.loading = true;
         try {
-          const response = await fetch('http://localhost:3001/api/auth/login', {
+          const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/auth/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

@@ -76,7 +76,7 @@
         this.loading = true;
         try {
           console.log('Intentando registro...');
-          const response = await fetch('http://localhost:3001/api/auth/register', {
+          const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/auth/register', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -15,6 +15,7 @@ dotenv.config();
 
 const PORT_MAIN_SERVER = process.env.PORT_MAIN_SERVER
 const PORT_CONTROL_SERVER = process.env.PORT_CONTROL_SERVER
+const CORS_ORIGIN = process.env.CORS_ORIGIN
 
 // Configuración principal
 const mainApp = express();
@@ -28,7 +29,7 @@ let isMainServerRunning = false;
 const commonMiddleware = (app) => {
   app.use(bodyParser.json());
   app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: CORS_ORIGIN,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));

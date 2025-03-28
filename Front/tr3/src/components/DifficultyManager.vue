@@ -225,7 +225,7 @@
     async fetchConfigurations() {
       this.loading = true;
       try {
-        const response = await fetch('http://localhost:3001/api/map-configs');
+        const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/map-configs');
         if (!response.ok) throw new Error('Error al cargar configuraciones');
         this.configurations = await response.json();
       } catch (error) {
@@ -240,7 +240,7 @@
   
   try {
     const promises = this.configurations.map(config => 
-      fetch('http://localhost:3001/api/map-configs', {
+      fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/map-configs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

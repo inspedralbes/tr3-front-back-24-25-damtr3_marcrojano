@@ -60,7 +60,7 @@
     methods: {
       async fetchStatus() {
         try {
-          const response = await fetch('http://localhost:3001/api/maintenance/status');
+          const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/maintenance/status');
           if (!response.ok) throw new Error('Error obteniendo estado');
           this.status = await response.json();
         } catch (error) {
@@ -71,7 +71,7 @@
       async toggleMaintenance(service) {
         this.loading[service] = true;
         try {
-          const response = await fetch('http://localhost:3001/api/maintenance/toggle', {
+          const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/maintenance/toggle', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
