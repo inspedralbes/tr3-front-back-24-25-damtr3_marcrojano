@@ -2,24 +2,28 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { spawn } from 'child_process';
-import jwt from 'jsonwebtoken'; // Añadir esta importación
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import enemigoRoutes from './routes/enemigos.js';
 import characterRoutes from './routes/CharacterRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
 import maintenanceRoutes from './routes/maintenanceRoutes.js';
 import sequelize from './config/database.js';
-import dificultadRoutes from'./routes/DificultadRoutes.js';
-import dotenv from 'dotenv'
+import dificultadRoutes from './routes/DificultadRoutes.js';
+import playerStatsRoutes from './routes/PlayerStatsRoutes.js';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PORT_MAIN_SERVER = process.env.PORT_MAIN_SERVER
-const PORT_CONTROL_SERVER = process.env.PORT_CONTROL_SERVER
-const CORS_ORIGIN = process.env.CORS_ORIGIN
+const PORT_MAIN_SERVER = process.env.PORT_MAIN_SERVER;
+const PORT_CONTROL_SERVER = process.env.PORT_CONTROL_SERVER;
+const CORS_ORIGIN = process.env.CORS_ORIGIN;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Configuración principal
 const mainApp = express();
 let mainServer = null;
+let controlServer = null;
 
 // Configuración del servidor de control
 const controlApp = express();
@@ -44,6 +48,7 @@ const setupMainServer = () => {
   mainApp.use('/api', dificultadRoutes);
   mainApp.use('/api/auth', loginRoutes);
   mainApp.use('/api/maintenance', maintenanceRoutes);
+  mainApp.use('/api', playerStatsRoutes);
 
   mainApp.use((err, req, res, next) => {
     console.error(err.stack);
@@ -56,109 +61,83 @@ const setupMainServer = () => {
   });
 };
 
-// Servidor de control (3002)
+// Servidor de control (3003)
 const setupControlServer = () => {
   commonMiddleware(controlApp);
 
-  const verifyAdmin = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Token no proporcionado' });
-    
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role !== 'admin') throw new Error();
-      next();
-    } catch (error) {
-      res.status(403).json({ error: 'Acceso no autorizado' });
-    }
-  };
-
-  controlApp.post('/api/control-server', verifyAdmin, (req, res) => {
-    const { action } = req.body;
-
-    try {
-      switch(action) {
-        case 'start':
-          if (!isMainServerRunning) {
-            mainServer = setupMainServer();
-          }
-          break;
-          
-        case 'stop':
-          if (isMainServerRunning && mainServer) {
-            mainServer.close(() => {
-              console.log('🔴 Servidor principal detenido');
-              isMainServerRunning = false;
-            });
-          }
-          break;
-          
-        case 'restart':
-          if (mainServer) {
-            mainServer.close(() => {
-              console.log('🔄 Reiniciando servidor...');
-              mainServer = setupMainServer();
-            });
-          }
-          break;
-          
-        default:
-          throw new Error('Acción no válida');
-      }
-      
-      res.json({ 
-        status: isMainServerRunning ? 'running' : 'stopped',
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
+  controlApp.get('/health', (req, res) => {
+    res.json({ status: 'ok', mainServer: isMainServerRunning });
   });
 
-  // Endpoint de verificación de estado
-  controlApp.get('/api/health', (req, res) => {
-    res.json({ 
-      status: isMainServerRunning ? 'running' : 'stopped',
-      timestamp: new Date().toISOString()
-    });
+  controlApp.post('/shutdown', (req, res) => {
+    console.log('🛑 Recibida solicitud de apagado');
+    res.json({ message: 'Apagando servidor...' });
+    shutdownServers();
   });
 
-  controlApp.listen(PORT_CONTROL_SERVER, () => {
-    console.log(`🎛 Servidor de control activo en http://localhost:${PORT_CONTROL_SERVER}`);
+  return controlApp.listen(PORT_CONTROL_SERVER, () => {
+    console.log(`⚙️ Servidor de control activo en http://localhost:${PORT_CONTROL_SERVER}`);
   });
 };
+
+// Función para apagar los servidores
+const shutdownServers = () => {
+  console.log('🛑 Iniciando apagado de servidores...');
+  
+  if (mainServer) {
+    mainServer.close(() => {
+      console.log('✅ Servidor principal cerrado');
+      isMainServerRunning = false;
+    });
+  }
+
+  if (controlServer) {
+    controlServer.close(() => {
+      console.log('✅ Servidor de control cerrado');
+    });
+  }
+
+  // Cerrar conexiones de base de datos
+  mongoose.connection.close(() => {
+    console.log('✅ Conexión a MongoDB cerrada');
+  });
+
+  sequelize.close().then(() => {
+    console.log('✅ Conexión a MySQL cerrada');
+  });
+
+  // Salir del proceso
+  process.exit(0);
+};
+
+// Manejar señales de terminación
+process.on('SIGTERM', shutdownServers);
+process.on('SIGINT', shutdownServers);
 
 // Inicialización
 const initialize = async () => {
   try {
+    // Conectar a MySQL
     await sequelize.authenticate();
-    console.log('✅ Conexión a la base de datos establecida.');
+    console.log('✅ Conexión a MySQL establecida.');
     
     await sequelize.sync({
       force: process.env.NODE_ENV === 'test',
       alter: process.env.NODE_ENV === 'development'
     });
+
+    // Conectar a MongoDB
+    await mongoose.connect(MONGODB_URI);
+    console.log('✅ Conexión a MongoDB establecida.');
     
-    setupControlServer();
+    controlServer = setupControlServer();
     mainServer = setupMainServer();
     
   } catch (error) {
     console.error('💥 Error de inicialización:', error);
-    process.exit(1);
+    shutdownServers();
   }
 };
-
-// Manejo de señales
-process.on('SIGINT', () => {
-  console.log('\n🔧 Apagado solicitado...');
-  if (mainServer) {
-    mainServer.close(() => {
-      console.log('🔒 Servidor principal detenido');
-      process.exit(0);
-    });
-  }
-});
 
 // Iniciar la aplicación
 initialize();
