@@ -22,4 +22,10 @@ router.get('/verify', authController.verifyToken, (req, res) => {
   res.json({ user: req.user });
 });
 
-export default router; 
+// Nueva ruta para obtener todos los usuarios (protegida)
+router.get('/users', authController.verifyToken, authController.getAllUsers);
+
+// Ruta específica para Unity (puedes protegerla o no según tus necesidades)
+router.get('/unity/users', authController.getUsersForUnity);
+
+export default router;

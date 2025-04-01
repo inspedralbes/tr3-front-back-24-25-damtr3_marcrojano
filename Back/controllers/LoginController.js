@@ -119,7 +119,68 @@ const authController = {
       console.error('Error en verificación de token:', error);
       res.status(401).json({ message: 'Token inválido', error: error.message });
     }
+  },
+  
+  // Nueva función para obtener todos los usuarios con rol "user"
+  getAllUsers: async (req, res) => {
+    try {
+      // Verificar si el solicitante tiene permisos
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'No tienes permisos para acceder a esta información' });
+      }
+      
+      // Buscar todos los usuarios con rol "user"
+      const users = await User.findAll({
+        where: { role: 'user' }
+      });
+      
+      res.json({
+        success: true,
+        users
+      });
+    } catch (error) {
+      console.error('Error al obtener usuarios:', error);
+      res.status(500).json({
+        message: 'Error al obtener usuarios',
+        error: error.message
+      });
+    }
+  },
+  
+  // Función específica para Unity que incluye passwords (NO RECOMENDADO)
+  getUsersForUnity: async (req, res) => {
+    try {
+      // Buscar todos los usuarios con rol "user" incluyendo el password hasheado
+      const users = await User.findAll({
+        where: { role: 'user' },
+        attributes: ['id', 'name', 'email', 'password', 'role']
+      });
+      
+      // ADVERTENCIA: Esta práctica es extremadamente insegura
+      // No se puede "deshashear" una contraseña hasheada, ya que el hashing es un proceso de un solo sentido
+      // Lo que se está enviando son las contraseñas hasheadas, que aunque mejor que texto plano,
+      // sigue siendo una grave vulnerabilidad de seguridad
+      
+      const formattedUsers = users.map(user => ({
+        id: user.id,
+        username: user.name,
+        email: user.email,
+        password: user.password, // Contraseña hasheada, NO es posible deshashearla
+        role: user.role
+      }));
+      
+      res.json({
+        success: true,
+        users: formattedUsers
+      });
+    } catch (error) {
+      console.error('Error al obtener usuarios para Unity:', error);
+      res.status(500).json({
+        message: 'Error al obtener usuarios para Unity',
+        error: error.message
+      });
+    }
   }
 };
 
-export default authController; 
+export default authController;
