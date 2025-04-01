@@ -1,123 +1,114 @@
 <template>
-    <v-container class="fill-height">
-      <v-row align="center" justify="center">
-        <v-col cols="12" sm="8" md="4">
-          <v-card class="elevation-12">
-            <v-toolbar color="primary" dark flat>
-              <v-toolbar-title>Registro</v-toolbar-title>
-            </v-toolbar>
-            <v-card-text>
-              <v-form @submit.prevent="handleRegister">
-                <v-text-field
-                  v-model="name"
-                  label="Nombre"
-                  prepend-icon="mdi-account"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="email"
-                  label="Email"
-                  prepend-icon="mdi-email"
-                  type="email"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="password"
-                  label="Contraseña"
-                  prepend-icon="mdi-lock"
-                  :type="showPassword ? 'text' : 'password'"
-                  :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
-                  @click:append="showPassword = !showPassword"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="confirmPassword"
-                  label="Confirmar Contraseña"
-                  prepend-icon="mdi-lock"
-                  :type="showPassword ? 'text' : 'password'"
-                  required
-                ></v-text-field>
-              </v-form>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" @click="handleRegister" :loading="loading">Registrarse</v-btn>
-            </v-card-actions>
-            <v-card-text class="text-center">
-              ¿Ya tienes cuenta? 
-              <router-link to="/login">Inicia Sesión</router-link>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
-  </template>
-  
-  <script>
-  export default {
-    name: 'Register',
-    data() {
-      return {
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        showPassword: false,
-        loading: false
+  <v-container>
+    <v-row justify="center">
+      <v-col cols="12" sm="8" md="6">
+        <v-card>
+          <v-card-title>
+            Registro
+          </v-card-title>
+          <v-card-text>
+            <v-form ref="form" v-model="valid">
+              <v-text-field
+                v-model="name"
+                :rules="[v => !!v || 'El nombre es requerido']"
+                label="Nombre"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="email"
+                :rules="[v => !!v || 'El email es requerido']"
+                label="Email"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="password"
+                :rules="[v => !!v || 'La contraseña es requerida']"
+                label="Contraseña"
+                type="password"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="confirmPassword"
+                :rules="[v => !!v || 'La confirmación de la contraseña es requerida']"
+                label="Confirmar Contraseña"
+                type="password"
+                required
+              ></v-text-field>
+            </v-form>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              color="primary"
+              @click="register"
+              :disabled="!valid"
+            >
+              Registrarse
+            </v-btn>
+          </v-card-actions>
+          <v-card-text class="text-center">
+            ¿Ya tienes cuenta? 
+            <router-link to="/login">Inicia Sesión</router-link>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script>
+export default {
+  name: 'Register',
+  data() {
+    return {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      valid: true
+    }
+  },
+  methods: {
+    async register() {
+      if (this.password !== this.confirmPassword) {
+        alert('Las contraseñas no coinciden');
+        return;
       }
-    },
-    methods: {
-      async handleRegister() {
-        if (this.password !== this.confirmPassword) {
-          alert('Las contraseñas no coinciden');
-          return;
+
+      try {
+        const response = await fetch('http://localhost:3001/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: this.name,
+            email: this.email,
+            password: this.password
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Error en el registro');
         }
-  
-        this.loading = true;
-        try {
-          console.log('Intentando registro...');
-          const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/auth/register', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              name: this.name,
-              email: this.email,
-              password: this.password
-            })
-          });
-  
-          console.log('Respuesta recibida:', response.status);
-          
-          let data;
-          try {
-            data = await response.json();
-          } catch (e) {
-            console.error('Error al parsear JSON:', e);
-            throw new Error('Error en la respuesta del servidor');
-          }
-  
-          if (!response.ok) {
-            throw new Error(data.message || 'Error en el registro');
-          }
-  
-          console.log('Datos recibidos:', data);
-          
-          if (data.message) {
-            alert('Registro exitoso');
-            this.$router.push('/login');
-          } else {
-            throw new Error('Error en la respuesta del servidor');
-          }
-        } catch (error) {
-          console.error('Error:', error);
-          alert(error.message || 'Error al conectar con el servidor');
-        } finally {
-          this.loading = false;
+
+        const data = await response.json();
+        
+        if (data.message) {
+          alert('Registro exitoso');
+          this.$router.push('/login');
         }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al conectar con el servidor');
       }
     }
   }
-  </script> 
+}
+</script>
+
+<style scoped>
+</style> 

@@ -1,14 +1,10 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import maintenanceService from '../services/maintenanceService.js';
+import { verifyToken } from '../middleware/auth.js';
 
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// Estado en memoria volátil
-let maintenanceStatus = {
-  userDashboard: false,
-  unity: false
-};
 
 const verifyAdmin = (req, res, next) => {
   try {
@@ -30,28 +26,46 @@ const verifyAdmin = (req, res, next) => {
   }
 };
 
-export default {
-  getStatus: (req, res) => res.json(maintenanceStatus),
-
-  toggleMaintenance: (req, res) => {
-    const validServices = ['userDashboard', 'unity'];
-    const { service } = req.body;
-    
-    if (!validServices.includes(service)) {
-      return res.status(400).json({ error: 'Servicio no válido' });
+class MaintenanceController {
+  async getStatus(req, res) {
+    try {
+      const status = maintenanceService.getStatus();
+      res.json({
+        userDashboard: status.userDashboard,
+        lastUpdate: {
+          userDashboard: status.lastUpdate?.userDashboard || null
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al obtener el estado de mantenimiento' });
     }
-    
-    maintenanceStatus[service] = !maintenanceStatus[service];
-    console.log(`Estado actualizado - ${service}: ${maintenanceStatus[service]}`);
-    
-    res.json({ 
-      success: true, 
-      service,
-      newStatus: maintenanceStatus[service] 
-    });
-  },
+  }
 
-  getUnityStatus: (req, res) => res.json({ inMaintenance: maintenanceStatus.unity }),
+  async toggleMaintenance(req, res) {
+    try {
+      const { service } = req.body;
+      
+      if (!service) {
+        return res.status(400).json({ error: 'Se requiere especificar el servicio' });
+      }
 
-  verifyAdminMiddleware: verifyAdmin
-};
+      const status = maintenanceService.toggleMaintenance(service);
+      res.json({
+        success: true,
+        message: `Servicio ${service} ${status[service] ? 'en mantenimiento' : 'operativo'}`,
+        status: {
+          [service]: status[service],
+          lastUpdate: {
+            [service]: status.lastUpdate?.[service] || new Date()
+          }
+        }
+      });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  verifyAdminMiddleware = verifyAdmin;
+}
+
+export default new MaintenanceController();

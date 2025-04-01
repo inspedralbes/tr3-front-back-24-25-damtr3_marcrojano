@@ -273,7 +273,7 @@ export default {
   methods: {
     async fetchCharacters() {
       try {
-        const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/characters');
+        const response = await fetch('http://localhost:3001/api/characters');
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
@@ -299,7 +299,7 @@ export default {
     },
     async guardarYEnviar() {
       try {
-        const response = await fetch('http://a23marrojgon-tr3.dam.inspedralbes.cat:29848/api/characters/guardar-y-enviar', {
+        const response = await fetch('http://localhost:3001/api/characters/guardar-y-enviar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

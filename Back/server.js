@@ -8,6 +8,7 @@ import enemigoRoutes from './routes/enemigos.js';
 import characterRoutes from './routes/CharacterRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
 import maintenanceRoutes from './routes/maintenanceRoutes.js';
+import mongodbStatusRoutes from './routes/mongodbStatusRoutes.js';
 import sequelize from './config/database.js';
 import dificultadRoutes from './routes/DificultadRoutes.js';
 import playerStatsRoutes from './routes/PlayerStatsRoutes.js';
@@ -37,26 +38,70 @@ const commonMiddleware = (app) => {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
+
+  // Middleware de logging
+  app.use((req, res, next) => {
+    console.log(`📝 ${req.method} ${req.url}`);
+    next();
+  });
 };
 
 // Servidor principal (3001)
 const setupMainServer = () => {
   commonMiddleware(mainApp);
 
-  mainApp.use('/api', enemigoRoutes);
-  mainApp.use('/api', characterRoutes);
-  mainApp.use('/api', dificultadRoutes);
-  mainApp.use('/api/auth', loginRoutes);
-  mainApp.use('/api/maintenance', maintenanceRoutes);
-  mainApp.use('/api', playerStatsRoutes);
+  // Log de rutas registradas
+  console.log('📋 Registrando rutas...');
 
+  // Rutas de MongoDB (deben ir primero para evitar conflictos)
+  console.log('📋 Registrando rutas de MongoDB...');
+  mainApp.use('/api/mongodb', (req, res, next) => {
+    console.log(`📝 Petición MongoDB: ${req.method} ${req.url}`);
+    next();
+  }, mongodbStatusRoutes);
+  console.log('✅ Rutas de MongoDB registradas');
+
+  // Otras rutas
+  mainApp.use('/api', enemigoRoutes);
+  console.log('✅ Ruta /api/enemigos registrada');
+
+  mainApp.use('/api', characterRoutes);
+  console.log('✅ Ruta /api/characters registrada');
+
+  mainApp.use('/api', dificultadRoutes);
+  console.log('✅ Ruta /api/dificultad registrada');
+
+  mainApp.use('/api/auth', loginRoutes);
+  console.log('✅ Ruta /api/auth registrada');
+
+  mainApp.use('/api/maintenance', maintenanceRoutes);
+  console.log('✅ Ruta /api/maintenance registrada');
+
+  mainApp.use('/api', playerStatsRoutes);
+  console.log('✅ Ruta /api/player-stats registrada');
+
+  // Middleware para manejar rutas no encontradas
+  mainApp.use((req, res, next) => {
+    console.error(`❌ Ruta no encontrada: ${req.method} ${req.url}`);
+    res.status(404).json({ error: 'Ruta no encontrada' });
+  });
+
+  // Middleware para manejar errores
   mainApp.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('💥 Error en el servidor:', err);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: err.message
+    });
   });
 
   return mainApp.listen(PORT_MAIN_SERVER, () => {
     console.log(`🚀 Servidor principal activo en http://localhost:${PORT_MAIN_SERVER}`);
+    console.log('📝 Rutas disponibles:');
+    console.log('- GET /api/mongodb/status');
+    console.log('- POST /api/mongodb/toggle');
+    console.log('- GET /api/maintenance/status');
+    console.log('- POST /api/maintenance/toggle');
     isMainServerRunning = true;
   });
 };
